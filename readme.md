@@ -1,3 +1,5 @@
-# 注册到注册中心
+# proxy 链接工具
 
-https://packagist.org/packages/phpmicroservice/pconfig
+方便的链接到proxy服务
+
+https://packagist.org/packages/phpmicroservice/proxy
