@@ -1,0 +1,27 @@
+{
+  "name": "phpmicroservice/proxy",
+  "type": "library",
+  "keywords": [
+    "swoole",
+    "microservice",
+    "proxy",
+    'spms'
+  ],
+  "description": "proxy链接工具",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Dongasai",
+      "email": "1514582970@qq.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.2",
+    "phpmicroservice/pms-frame": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "proxy\\": "src/"
+    }
+  }
+}
