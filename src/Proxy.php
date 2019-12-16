@@ -4,37 +4,55 @@ namespace proxy;
 
 use Phalcon\Events\Event;
 use pms\Output;
+use spms\Data;
+use spms\Data2;
 
 /**
- * 注册服务
- * Class Register
- * @property \pms\bear\ClientCoroutine $register_client
+ * 链接工具
+ * Class Proxy
+ * @property \pms\bear\ClientCoroutine $proxy_client
  * @package pms
  */
 class Proxy
 {
-    private $client_ip;
-    private $client_port;
-    private $register_client;
-    private $regclient_ip;
-    private $regserver_port;
-    private $reg_status = false;
+    private $proxy_addr;
+    private $proxy_port;
+    private $proxy_key;
+    private $proxy_client;
+    private $auth_status = false;
 
 
     /**
      * 配置初始化
      */
-    public function __construct(\Swoole\Server $server)
+    public function __construct($proxy_addr,$proxy_port,$proxy_key)
     {
-        $config = \Phalcon\Di\FactoryDefault\Cli::getDefault()->getShared('config');
-        $this->client_ip = $config->server->register_addr;
-        $this->client_port = $config->server->register_port;
-        \pms\output([$this->client_ip, $this->client_port], 'Register');
-        $this->register_client = new \pms\bear\ClientCoroutine($this->client_ip, $this->client_port, 10);
+        
+        $this->proxy_addr = $proxy_addr;
+        $this->proxy_port =$proxy_port;
+        $this->proxy_key =$proxy_key;
 
-        $this->ping();
+        \pms\output([$this->proxy_addr, $this->proxy_port], 'Proxy');
+        $this->proxy_client = new \pms\bear\ClientCoroutine(
+            $this->proxy_addr,
+            $this->proxy_port,
+            30);
+        $this->auth();
     }
 
+    public function auth()
+    {
+        $config = \Phalcon\Di\FactoryDefault\Cli::getDefault()->getShared('config');
+        $data = new Data2();
+        $time = time().uniqid();
+
+        $this->ask_recv('proxy','/auth',[
+            'key'=>md5($this->proxy_key.$time),
+            'time'=>$time
+        ]);
+        $data = $this->proxy_client->recv();
+        \pms\output([$this->proxy_key,$data], 'auth');
+    }
 
     /**
      * 配置更新
@@ -81,6 +99,51 @@ class Proxy
 
         \Swoole\Coroutine\System::sleep(4);
         $this->ping();
-
     }
+
+
+    public function ask_recv($server, $router, $data)
+    {
+        return $this->send_recv([
+            's' => $server,
+            'r' => $router,
+            'd' => $data
+        ]);
+    }
+
+    /**
+     * 发送并接受返回
+     * @param $data
+     */
+    public function send_recv($data)
+    {
+
+        $re = $this->proxy_client->send($data);
+        if (!$re) {
+            return $re;
+        }
+        return $this->proxy_client->recv();
+    }
+
+
+
+    /**
+     * 发送一个请求
+     * @param $router
+     * @param $data
+     * @return bool
+     */
+    public function send_ask($server, $router, $data)
+    {
+        return $this->proxy_client->send([
+            's' => $server,
+            'r' => $router,
+            'd' => $data
+        ]);
+    }
+
+
+
+
+
 }
