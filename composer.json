@@ -5,7 +5,7 @@
     "swoole",
     "microservice",
     "proxy",
-    'spms'
+    "spms"
   ],
   "description": "proxy链接工具",
   "license": "MIT",
