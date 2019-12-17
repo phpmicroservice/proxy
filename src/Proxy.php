@@ -54,54 +54,15 @@ class Proxy
         \pms\output([$this->proxy_key,$data], 'auth');
     }
 
+    
+
     /**
-     * 配置更新
+     * 请求并等待返回
+     * @param $server
+     * @param $router
+     * @param $data
+     * @return array|mixed
      */
-    public function ping()
-    {
-        Output::info($this->register_client->isConnected(), 'ping');
-        if ($this->register_client->isConnected()) {
-            $data = [
-                'name' => strtolower(SERVICE_NAME),
-                'host' => APP_HOST_IP,
-                'port' => APP_HOST_PORT,
-                'type' => 'tcp'
-            ];
-            Output::info($data, 'ping');
-            try {
-                if ($this->reg_status) {
-                    # 注册完毕进行ping
-                    $data = $this->register_client->ask_recv('register', '/service/ping', $data);
-                    # 正确的
-                } else {
-                    # 没有注册完毕,先注册
-                    $data = $this->register_client->ask_recv('register', '/service/reg', $data);
-                }
-            } catch (\Throwable $exception) {
-                $data = [];
-            }
-
-            # 正确的
-            if ($data['t'] == '/service/reg') {
-                # 我们需要的数据
-                $this->reg_status = 1;
-            }
-            if ($data === false) {
-                Output::info($this->register_client->swoole_client->errCode, 'ping32');
-                if ($this->register_client->swoole_client->errCode == 32) {
-                    $this->register_client->connect();
-                }
-            }
-        } else {
-            $this->register_client->connect();
-        }
-
-
-        \Swoole\Coroutine\System::sleep(4);
-        $this->ping();
-    }
-
-
     public function ask_recv($server, $router, $data)
     {
         return $this->send_recv([
@@ -117,13 +78,14 @@ class Proxy
      */
     public function send_recv($data)
     {
-
-        $re = $this->proxy_client->send($data);
+        $re = $this->send($data);
         if (!$re) {
             return $re;
         }
         return $this->proxy_client->recv();
     }
+
+
 
 
 
@@ -135,11 +97,30 @@ class Proxy
      */
     public function send_ask($server, $router, $data)
     {
-        return $this->proxy_client->send([
+        return $this->send([
             's' => $server,
             'r' => $router,
             'd' => $data
         ]);
+    }
+    
+    /**
+     * 
+     * 发送消息
+     * @param type $data
+     * @return type
+     */
+    private function send($data)
+    {
+        $data =$this->proxy_client->send($data);
+        
+        if ($data === false) {
+            Output::error($this->proxy_client->swoole_client->errCode, 'proxy-send');
+            if ($this->proxy_client->swoole_client->errCode == 32) {
+                $this->proxy_client->connect();
+            }
+        }
+        return $data;
     }
 
 
