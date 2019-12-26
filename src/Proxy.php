@@ -33,11 +33,25 @@ class Proxy
         $this->proxy_key =$proxy_key;
 
         \pms\output([$this->proxy_addr, $this->proxy_port], 'Proxy');
-        $this->proxy_client = new \pms\bear\ClientCoroutine(
-            $this->proxy_addr,
-            $this->proxy_port,
-            30);
+        if($this->is_cli()){
+            $this->proxy_client = new \pms\bear\ClientCoroutine(
+                $this->proxy_addr,
+                $this->proxy_port,
+                30);
+        }else{
+            $this->proxy_client = new \pms\bear\ClientSync(
+                $this->proxy_addr,
+                $this->proxy_port,
+                10);
+        }
+
+
         $this->auth();
+    }
+
+    function is_cli()
+    {
+        return preg_match("/cli/i", php_sapi_name()) ? true : false;
     }
 
     public function auth()
@@ -46,12 +60,11 @@ class Proxy
         $data = new Data2();
         $time = time().uniqid();
 
-        $this->ask_recv('proxy','/auth',[
+        $data63 = $this->ask_recv('proxy','/auth',[
             'key'=>md5($this->proxy_key.$time),
             'time'=>$time
         ]);
-        $data = $this->proxy_client->recv();
-        \pms\output([$this->proxy_key,$data], 'auth');
+        \pms\output([$this->proxy_key,$data63], 'auth');
     }
 
     
